@@ -30,7 +30,7 @@ MoE allows:
 
 ---
 
-# ✅ The Core Idea (Illustration)
+# ✅ The Core Idea 
 
 ```mermaid
 flowchart TD
@@ -46,7 +46,7 @@ flowchart TD
 
 ---
 
-# ✅ **Simplified Example (college-level)**
+# ✅ **Simplified Example**
 
 Let’s pretend:
 
@@ -168,7 +168,7 @@ flowchart TD
 
 ---
 
-# ✅ **Load Balancing Problem (Simple Explanation)**
+# ✅ **Load Balancing Problem**
 
 If many tokens choose the same expert → that expert gets overloaded → slows down training/inference.
 
