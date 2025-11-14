@@ -40,7 +40,7 @@ Points to note:
 ### A. **PyTorch (SymmetricMemory layer)**
 PyTorch exposes a SymmetricMemory API and op namespace to allocate and use symmetric buffers. Typical entry points include:
 
-- `symm_mem.empty(shape, dtype=None, device="cuda")` — allocate a tensor backed by the symmetric allocator (semantics like `torch.empty`).
+- `symm_mem.empty(shape, dtype=None, device="xpu")` — allocate a tensor backed by the symmetric allocator (semantics like `torch.empty`).
 - `symm_mem.rendezvous(tensor, group_name)` — perform the handle exchange for a symmetric allocation so peers can access each other’s symmetric region.
 - `torch.ops.symm_mem.*` — op namespace for fused device collectives and one‑shot kernels (example: one‑shot all‑reduce variants). Note: `torch.ops.symm_mem` is an op namespace — you call ops by their fully qualified name instead of `import`-ing it.
 
@@ -49,30 +49,13 @@ PyTorch exposes a SymmetricMemory API and op namespace to allocate and use symme
 import torch
 import torch.distributed as dist
 # allocate symmetric buffer using symm op namespace
-buf = torch.ops.symm_mem.empty((1024,), dtype=torch.float32, device="cuda")
+buf = torch.ops.symm_mem.empty((1024,), dtype=torch.float32, device="xpu")
 # perform rendezvous to exchange handles and map remote buffers
 torch.ops.symm_mem.rendezvous(buf, group_name="world")
 # call a symm op (implementation specific)
 torch.ops.symm_mem.one_shot_all_reduce_(buf, "sum", "world")
 ```
 
-**Caveat:** the API surface in PyTorch is evolving and may be behind flags or alpha; check the PyTorch SymmetricMemory docs for your version.
-
-### B. **NVSHMEM / NVSHMEM4Py (NVIDIA canonical implementation)**
-At a lower level, NVSHMEM provides the canonical PGAS-style symmetric heap APIs in C/CUDA:
-
-- `void *nvshmem_malloc(size_t size)` — allocate symmetric memory.
-- `void nvshmem_free(void *ptr)` — free symmetric memory.
-- Device-level primitives: `nvshmem_put`, `nvshmem_get`, atomics, and signaling APIs.
-
-NVSHMEM4Py offers Python bindings and interop helpers for PyTorch and CuPy tensors — e.g., `nvshmem.interop.torch.empty(shape, dtype=...)` creates a PyTorch tensor backed by NVSHMEM symmetric memory.
-
-### C. **Lower-level building blocks commonly used with Symmetric Memory**
-
-- **Handle exchange / rendezvous** — exchange kernel handles/keys so each PE can map peer memory. PyTorch and projects like vLLM provide helpers.
-- **Signaling primitives** — `stream_write_value32`-style doorbell writes (used to signal readiness between peers). These are exposed via platform-specific drivers/APIs.
-
----
 
 ## 5) Example: pull-based one-shot all reduce (conceptual)
 
@@ -93,7 +76,7 @@ This pattern is attractive when inputs are sparse or when pulling on demand redu
 - **Low-latency peer access** on NVLink-equipped systems.
 - **Flexible communication patterns** (pull-based, one-shot collectives, custom rendezvous).
 - **Good compute/comm overlap** using device signaling + direct loads/stores.
-- **Framework-level interoperability** via PyTorch ops on top of NVSHMEM.
+- **Framework-level interoperability** via PyTorch ops.
 
 ---
 
